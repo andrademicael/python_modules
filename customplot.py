@@ -33,7 +33,8 @@ def first_run():
         "figure.figsize": figsize(0.9),     # default fig size of 0.9 textwidth
         "pgf.preamble": [
             r"\usepackage[utf8x]{inputenc}",    # use utf8 fonts becasue your computer can handle it :)
-            r"\usepackage[T1]{fontenc}",        # plots will be generated using this preamble
+            r"\usepackage[T1]{fontenc}"
+            r'\usepackage{amsmath}',        # plots will be generated using this preamble
             ]
         }
 
@@ -42,6 +43,8 @@ def first_run():
     pgf_with_rc_fonts = {"font.serif": []}# use latex default serif font
 
     mpl.rcParams.update(pgf_with_rc_fonts)
+
+    mpl.rc('text', usetex=True)
 
 # I make my own newfig and savefig functions
 def newfig(width):
