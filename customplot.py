@@ -34,7 +34,9 @@ def first_run():
         "pgf.preamble": [
             r"\usepackage[utf8x]{inputenc}",    # use utf8 fonts becasue your computer can handle it :)
             r"\usepackage[T1]{fontenc}"
-            r'\usepackage{amsmath}',        # plots will be generated using this preamble
+            r"\usepackage{mathrsfs}",
+            r"\usepackage{amsmath, amssymb, amsthm}",
+            r"\usepackage{braket}"       # plots will be generated using this preamble
             ]
         }
 
