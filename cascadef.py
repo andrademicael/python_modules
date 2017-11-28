@@ -88,9 +88,9 @@ def dichotomic(a,b,k):
 	return [b, pos]
 
 def partial_dic(a,b,e_pos,k):
-	from numpy import concatenate, arange, array
-	import ipdb
-	ipdb.set_trace()
+	from numpy import concatenate, arange, array, any as any2
+	#import ipdb
+	#ipdb.set_trace()
 	l = a.size # string size
 	if l % k == 0: # n -> numer of blocks
 		n = l//k
@@ -99,41 +99,30 @@ def partial_dic(a,b,e_pos,k):
 
 	pos = array([], dtype = int)
 
-	j = 0
+	erro = 0
 	cont = 0
-	# procura quais blocos tiveram numero ímpar de correções
-	for i in e_pos: # realiza uma varredura nos bits corrigidos
-		while True:
-			if i<(j+1)*k: # faz uma contagem de quantos bits foram corrigidos de bloco (j+1)*k
-				cont += 1
-				break # quando um bit é pertencente ao bloco, o laço deve ser quebrado para verificação do próximo pit
-			else: 
-				'''
-					caso o bit procurado não esteja contido no bloco (j+1)*k, duas coisas podem acontecer:
-					1 - não existe nenhum bit corrigido no bloco. Logo, é necessário descobrir em que bloco o 
-					próximo bit corrigido se encontra.
-					2 - o número de bits corrigidos (cont) é impar e será realizada uma correção no bloco em questão
-					3 - O número de bist corrigidos (cont) é par e não será realizada uma correção
-				'''
-				if cont == 0:
-					'''
-						Quando nenhum bit corrigido faz parte do bloco, é feita uma busca para encontrar 
-						o bloco onde se encontra. O loop incrementa a variável j até que ela indique o bloco onde
-						o bit da posição i se encontra
-					'''
-					while i > (j+1)*k:
-						j += 1
-
-				elif (cont % 2) == 1:
-					if j < n-1:
-						b[j*k:(j+1)*k], p = binary(a[j*k:(j+1)*k], b[j*k:(j+1)*k])
-						pos = concatenate((pos,[j*k + p]))
-					else:
-						b[j*k:], p = binary(a[j*k:], b[j*k:])
-						pos = concatenate((pos,[j*k + p]))
-					j += 1
-					cont = 0
-					#break
+	flag = 0
+	for j in range(n):
+		while e_pos[erro] < (j+1)*k:
+			erro += 1
+			cont += 1
+			if erro == e_pos.size:
+				flag = 1
+				break		
+		#else:
+		if cont == 0:
+			pass
+		elif (cont % 2) == 1:
+			if j < n-1:
+				b[j*k:(j+1)*k], p = binary(a[j*k:(j+1)*k], b[j*k:(j+1)*k])
+				pos = concatenate((pos,[j*k + p]))
+			else:
+				b[j*k:], p = binary(a[j*k:], b[j*k:])
+				pos = concatenate((pos,[j*k + p])) 
+		if flag == 1:
+			#return [b, pos]
+			break
+		cont = 0
 	return [b, pos]
 
 def recurs(a,b,pos,sig,k,step):
@@ -141,14 +130,14 @@ def recurs(a,b,pos,sig,k,step):
 		realiza a correção recorrente na reconciliação do segundo passo em diante
 		'siga' contem as posições originais de cada bit após as permutações
  	'''
-	import ipdb
-	ipdb.set_trace()
+	#import ipdb
+	#ipdb.set_trace()
 
 	#e_pos = siga[pos] # recebe as posições dos erros encontrados
 	#e_pos.sort() # posições, na string original, dos erros corrigidos
 	pos.sort()
 	isig = inv_perm(sig) # isig faz a permutação inversa ao padrão em 'sig'
-	#siga = sig.copy()
+	siga = sig.copy()
 	for i in range(step-1,0,-1):
 		a = a[isig]
 		b = b[isig]
@@ -163,16 +152,16 @@ def recurs(a,b,pos,sig,k,step):
 		n = (l//k) +1
 	
 	b, pos = partial_dic(a,b,pos,k)
-	print('A função retornou para as posições iniciais, corrigindo os erros nas posições: \n%s' % pos)
-
+	#print('A função retornou para as posições iniciais, corrigindo os erros nas posições: \n%s' % pos)
+	k *= 2
 	for j in range(i,step):
 		a = a[sig]
 		b = b[sig]
 		siga = siga[sig]
-		k *= 2
 		b, pos = dichotomic(a,b,k)
-		# if pos.any():
-		# 	b = recurs(a,b,pos,sig,siga,k,i)
+		k *= 2
+		if pos.any():
+			b = recurs(a,b,pos,sig,k,i)
 	return b
 
 def cor_var(n, m, ro, sig):
