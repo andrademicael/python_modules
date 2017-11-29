@@ -88,9 +88,12 @@ def dichotomic(a,b,k):
 	return [b, pos]
 
 def partial_dic(a,b,e_pos,k):
-	from numpy import concatenate, arange, array
-	import ipdb
-	ipdb.set_trace()
+	'''
+		Função utilizada para recursividade no CASCADE. 
+		A função está instável e, conforme conversa com o professor Bruno, não será utilizada recursividade.
+	'''
+	from numpy import concatenate, arange, array, zeros
+
 	l = a.size # string size
 	if l % k == 0: # n -> numer of blocks
 		n = l//k
@@ -99,80 +102,59 @@ def partial_dic(a,b,e_pos,k):
 
 	pos = array([], dtype = int)
 
-	j = 0
-	cont = 0
-	# procura quais blocos tiveram numero ímpar de correções
-	for i in e_pos: # realiza uma varredura nos bits corrigidos
-		while True:
-			if i<(j+1)*k: # faz uma contagem de quantos bits foram corrigidos de bloco (j+1)*k
-				cont += 1
-				break # quando um bit é pertencente ao bloco, o laço deve ser quebrado para verificação do próximo pit
-			else: 
-				'''
-					caso o bit procurado não esteja contido no bloco (j+1)*k, duas coisas podem acontecer:
-					1 - não existe nenhum bit corrigido no bloco. Logo, é necessário descobrir em que bloco o 
-					próximo bit corrigido se encontra.
-					2 - o número de bits corrigidos (cont) é impar e será realizada uma correção no bloco em questão
-					3 - O número de bist corrigidos (cont) é par e não será realizada uma correção
-				'''
-				if cont == 0:
-					'''
-						Quando nenhum bit corrigido faz parte do bloco, é feita uma busca para encontrar 
-						o bloco onde se encontra. O loop incrementa a variável j até que ela indique o bloco onde
-						o bit da posição i se encontra
-					'''
-					while i > (j+1)*k:
-						j += 1
+	teste = zeros((1, l), dtype = int)
+	teste[e_pos] = 1
 
-				elif (cont % 2) == 1:
-					if j < n-1:
-						b[j*k:(j+1)*k], p = binary(a[j*k:(j+1)*k], b[j*k:(j+1)*k])
-						pos = concatenate((pos,[j*k + p]))
-					else:
-						b[j*k:], p = binary(a[j*k:], b[j*k:])
-						pos = concatenate((pos,[j*k + p]))
-					j += 1
-					cont = 0
-					#break
+	for j in range(n):
+		if j < n-1:
+			if bitpar(teste[j*k:(j+1)*k]) == 1:
+				b[j*k:(j+1)*k], p = binary(a[j*k:(j+1)*k], b[j*k:(j+1)*k])
+				pos = concatenate((pos,[j*k + p]))
+		else:
+			if bitpar(teste[j*k:]) == 1:
+				b[j*k:], p = binary(a[j*k:], b[j*k:])
+				pos = concatenate((pos,[j*k + p]))
 	return [b, pos]
 
 def recurs(a,b,pos,sig,k,step):
 	'''
-		realiza a correção recorrente na reconciliação do segundo passo em diante
-		'siga' contem as posições originais de cada bit após as permutações
+		realiza a correção recursiva na reconciliação, do segundo passo em diante.
+		'siga' contém as posições originais de cada bit após as permutações
+		'recurs' sempre restaurará as strings para suas condições iniciais. Logo,
+		'pos' deve informar a posição original do bit corrigido.
+			
+		A função está instável e, conforme conversa com o professor Bruno, não será utilizada recursividade.
  	'''
+	from numpy import arange
 	import ipdb
 	ipdb.set_trace()
 
-	#e_pos = siga[pos] # recebe as posições dos erros encontrados
-	#e_pos.sort() # posições, na string original, dos erros corrigidos
 	pos.sort()
 	isig = inv_perm(sig) # isig faz a permutação inversa ao padrão em 'sig'
-	#siga = sig.copy()
 	for i in range(step-1,0,-1):
 		a = a[isig]
 		b = b[isig]
-		#siga = siga[isig]
 		k //= 2
-	#nesse ponto, as strings foram permutadas inversamente de modo que estão na posição original
-	#step = 0?
+	#nesse ponto, as strings foram permutadas inversamente de modo que estão na posição original. i = 1.
+
 	l = a.size # string size
+	siga = arange(l)
 	if l % k == 0: # n -> numer of blocks
 		n = l//k
 	else:
 		n = (l//k) +1
 	
-	b, pos = partial_dic(a,b,pos,k)
-	print('A função retornou para as posições iniciais, corrigindo os erros nas posições: \n%s' % pos)
+	b, pos = partial_dic(a,b,pos,k) # essa operação é semelhate à 'dichotomic' na linha 78, 
 
+	k *= 2
 	for j in range(i,step):
 		a = a[sig]
 		b = b[sig]
 		siga = siga[sig]
-		k *= 2
 		b, pos = dichotomic(a,b,k)
-		# if pos.any():
-		# 	b = recurs(a,b,pos,sig,siga,k,i)
+		if pos.any():
+			b = recurs(a,b,siga[pos],sig,k,j)
+		k *= 2
 	return b
 
 def cor_var(n, m, ro, sig):
@@ -185,9 +167,10 @@ def cor_var(n, m, ro, sig):
 
 		Output:
 		x, y - variáveis aleatórias gaussianas correlacionadas
+		sig - variância do ruído
 	'''
 	from numpy.random import randn
-	from numpy import array, dot
+	from numpy import array, dot, var
 	from scipy.linalg import cholesky
 
 	xy = sig*randn(n,2) + m
@@ -200,8 +183,13 @@ def cor_var(n, m, ro, sig):
 	xy_cor = dot(xy,L)
 	x = (xy_cor[:,0]).transpose()
 	y = (xy_cor[:,1]).transpose()
+	n = x-y
 
-	return [x, y]
+	var_x = var(x)
+	var_y = var(y)
+	var_n = var(n)
+
+	return [x, y, var_x, var_y, var_n]
 
 def plt_pdf(x, *args, **kargs):
 	from numpy import linspace
