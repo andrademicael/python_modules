@@ -189,8 +189,6 @@ def cor_var(n, m, ro, sig):
 	var_y = var(y)
 	var_n = var(n)
 
-
-
 	return [x, y, var_x, var_y, var_n]
 
 def plt_pdf(x, *args, **kargs):
