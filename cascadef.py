@@ -167,9 +167,10 @@ def cor_var(n, m, ro, sig):
 
 		Output:
 		x, y - variáveis aleatórias gaussianas correlacionadas
+		sig - variância do ruído
 	'''
 	from numpy.random import randn
-	from numpy import array, dot
+	from numpy import array, dot, var
 	from scipy.linalg import cholesky
 
 	xy = sig*randn(n,2) + m
@@ -182,8 +183,15 @@ def cor_var(n, m, ro, sig):
 	xy_cor = dot(xy,L)
 	x = (xy_cor[:,0]).transpose()
 	y = (xy_cor[:,1]).transpose()
+	n = x-y
 
-	return [x, y]
+	var_x = var(x)
+	var_y = var(y)
+	var_n = var(n)
+
+
+
+	return [x, y, var_x, var_y, var_n]
 
 def plt_pdf(x, *args, **kargs):
 	from numpy import linspace
