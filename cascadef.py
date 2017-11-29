@@ -157,7 +157,7 @@ def recurs(a,b,pos,sig,k,step):
 		k *= 2
 	return b
 
-def cor_var(n, m, ro, sig):
+def cor_var(n, ro):
 	''' 
 		função que retorna duas variáveis aleatórias gaussianas correlacionadas.
 		Input:
@@ -173,7 +173,7 @@ def cor_var(n, m, ro, sig):
 	from numpy import array, dot, var
 	from scipy.linalg import cholesky
 
-	xy = sig*randn(n,2) + m
+	xy = randn(n,2)
 
 	#!!! corigir !!!
 	R = array([[1, ro],[ro, 1]]) #matriz de covariancia 
@@ -190,6 +190,46 @@ def cor_var(n, m, ro, sig):
 	var_n = var(n)
 
 	return [x, y, var_x, var_y, var_n]
+
+def strings(ro, nbits, nr):
+	'''
+		Duas variaveis aleatŕoia são geradas: Gaussianas correlacionadas. As funções cumulativas de 
+		probabilidade de suas realizações assumem uma distribuição uniforme (maximizando entropia).
+		A partir disto, são geradas expansões em base 2, dado um numero fixo de bits para representação
+		dos valores das CDF's
+	'''
+
+	from numpy import log10, zeros, where
+	from scipy.stats import norm
+
+	A, B, var_a, var_b, var_n = cor_var(nr, ro) # gera as duas VA's Gaussianas correlacionadas
+	
+	k = int(0.73/var_n) # First iteration block size
+	snr = 10*log10(var_a/var_n)
+
+	cdfa = norm.cdf(A) # valor da CDF para cada valor de A
+	cdfb = norm.cdf(B) # valor da CDF para cada valor de B
+
+	a = zeros((nr, nbits), dtype = int)
+	b = zeros((nr, nbits), dtype = int)
+	for i in range(nr):
+		a[i,:] = b2_exp(cdfa[i],nbits)
+		b[i,:] = b2_exp(cdfb[i],nbits)
+
+	a = a.reshape((1,a.size))[0]
+	b = b.reshape((1,b.size))[0]
+
+	print('Parâmetros da simulação: ')
+	print('\nCoeficiente de correlação das VA\'s: %.2f' % ro)
+	print('Realizações: %i ' % nr)
+	print('Número de bits para representação: %i' % nbits)
+	print('Comprimento total das strings: %i' % a.size)
+	print('Quantidade de erros gerados: %i ' % where(a != b)[0].size)
+	print('Variância do ruído: %.2f' % var_n)
+	print('SRN: %.2f' % snr)
+	print('Tamanho to bloco: %i' % k)
+	
+	return [a, b, k, snr]
 
 def plt_pdf(x, *args, **kargs):
 	from numpy import linspace
@@ -233,6 +273,50 @@ def b2_exp(n,nb):
 			flag = 1
 	return expanse
 
+def cascade(a, b, sig, k):
+	from numpy import where, arange
+
+	print('\nInício da CASCADE')
+
+	######################################################################################################
+	#									CASCADE 1st Step 			           		                     #
+	#                                   													             #
+
+	# first strings permutation
+	a = a[sig]
+	b = b[sig] # a primeira permutação é considerada como posição inicial da cadeia de bits
+	siga = arange(a.size) # original bits positions
+
+	b, pos = dichotomic(a,b,k) # first search
+	'''
+		pos inform wrong bits positions that were solved on a not permuted list, e.g, arange(1,l)
+		the original solved bits positions rely on siga[pos]
+	'''
+	step = 1 # first step compleated
+	print('')
+	print('Após o passo %i, restam %i erros a serem corrigidos.' % (step, where(a != b)[0].size))
+
+	######################################################################################################
+	#									CASCADE 2nd Step 			           		                     #
+	#                                   													             #
+	# k *= 2 # double block size
+	while step<10 and where(a != b)[0].size != 0: # o tamanho do bloco para realizar dichotomic() deve ser menor que o tamanho da string
+		a = a[sig] # permutation
+		b = b[sig] # permutation
+		siga = siga[sig] # keeps the original bits positions by permuting siga
+		b, pos = dichotomic(a,b,k) # realize dichotomic() 
+		step += 1 # step compleated
+		print('')
+		print('Após o passo %i, restam %i erros a serem corrigidos.' % (step, where(a != b)[0].size))
+		'''
+			if pos.size != 0: # if any error was corrected, must be done a recursive search
+				print('Strings antes da recursividade: \nA: \n%s \nB:\n%s' % (a.reshape((n_r, nbits)), b.reshape((n_r, nbits))))
+				b = recurs(a, b, siga[pos], sig, k, step)
+				print('Strings depois da recursividade: \nA: \n%s \nB:\n%s' % (a.reshape((n_r, nbits)), b.reshape((n_r, nbits))))
+			k *= 2 # double block size
+		'''
+	return [a, b]
+
 if __name__ == '__bitpar__':
 	bitpar()
 elif __name__ == '__binary__':
@@ -247,7 +331,11 @@ elif __name__ == '__recurs__':
 	recurs()
 elif __name__ == '__cor_var__':
 	cor_var()
+elif __name__ == '__strings__':
+	strings()
 elif __name__ == '__plt_pdf__':
 	plt_pdf()
 elif __name__ == '__main__':
 	b2_exp()
+elif __name__ == '__cascade__':
+	cascade()
