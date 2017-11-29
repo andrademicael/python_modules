@@ -88,9 +88,12 @@ def dichotomic(a,b,k):
 	return [b, pos]
 
 def partial_dic(a,b,e_pos,k):
-	from numpy import concatenate, arange, array, any as any2
-	#import ipdb
-	#ipdb.set_trace()
+	'''
+		Função utilizada para recursividade no CASCADE. 
+		A função está instável e, conforme conversa com o professor Bruno, não será utilizada recursividade.
+	'''
+	from numpy import concatenate, arange, array, zeros
+
 	l = a.size # string size
 	if l % k == 0: # n -> numer of blocks
 		n = l//k
@@ -99,69 +102,59 @@ def partial_dic(a,b,e_pos,k):
 
 	pos = array([], dtype = int)
 
-	erro = 0
-	cont = 0
-	flag = 0
+	teste = zeros((1, l), dtype = int)
+	teste[e_pos] = 1
+
 	for j in range(n):
-		while e_pos[erro] < (j+1)*k:
-			erro += 1
-			cont += 1
-			if erro == e_pos.size:
-				flag = 1
-				break		
-		#else:
-		if cont == 0:
-			pass
-		elif (cont % 2) == 1:
-			if j < n-1:
+		if j < n-1:
+			if bitpar(teste[j*k:(j+1)*k]) == 1:
 				b[j*k:(j+1)*k], p = binary(a[j*k:(j+1)*k], b[j*k:(j+1)*k])
 				pos = concatenate((pos,[j*k + p]))
-			else:
+		else:
+			if bitpar(teste[j*k:]) == 1:
 				b[j*k:], p = binary(a[j*k:], b[j*k:])
-				pos = concatenate((pos,[j*k + p])) 
-		if flag == 1:
-			#return [b, pos]
-			break
-		cont = 0
+				pos = concatenate((pos,[j*k + p]))
 	return [b, pos]
 
 def recurs(a,b,pos,sig,k,step):
 	'''
-		realiza a correção recorrente na reconciliação do segundo passo em diante
-		'siga' contem as posições originais de cada bit após as permutações
+		realiza a correção recursiva na reconciliação, do segundo passo em diante.
+		'siga' contém as posições originais de cada bit após as permutações
+		'recurs' sempre restaurará as strings para suas condições iniciais. Logo,
+		'pos' deve informar a posição original do bit corrigido.
+			
+		A função está instável e, conforme conversa com o professor Bruno, não será utilizada recursividade.
  	'''
-	#import ipdb
-	#ipdb.set_trace()
+	from numpy import arange
+	import ipdb
+	ipdb.set_trace()
 
-	#e_pos = siga[pos] # recebe as posições dos erros encontrados
-	#e_pos.sort() # posições, na string original, dos erros corrigidos
 	pos.sort()
 	isig = inv_perm(sig) # isig faz a permutação inversa ao padrão em 'sig'
-	siga = sig.copy()
 	for i in range(step-1,0,-1):
 		a = a[isig]
 		b = b[isig]
-		#siga = siga[isig]
 		k //= 2
-	#nesse ponto, as strings foram permutadas inversamente de modo que estão na posição original
-	#step = 0?
+	#nesse ponto, as strings foram permutadas inversamente de modo que estão na posição original. i = 1.
+
 	l = a.size # string size
+	siga = arange(l)
 	if l % k == 0: # n -> numer of blocks
 		n = l//k
 	else:
 		n = (l//k) +1
 	
-	b, pos = partial_dic(a,b,pos,k)
-	#print('A função retornou para as posições iniciais, corrigindo os erros nas posições: \n%s' % pos)
+	b, pos = partial_dic(a,b,pos,k) # essa operação é semelhate à 'dichotomic' na linha 78, 
+
 	k *= 2
 	for j in range(i,step):
 		a = a[sig]
 		b = b[sig]
 		siga = siga[sig]
 		b, pos = dichotomic(a,b,k)
-		k *= 2
 		if pos.any():
-			b = recurs(a,b,pos,sig,k,i)
+			b = recurs(a,b,siga[pos],sig,k,j)
+		k *= 2
 	return b
 
 def cor_var(n, m, ro, sig):
