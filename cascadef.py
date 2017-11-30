@@ -225,6 +225,7 @@ def strings(ro, nbits, nr):
 	print('Número de bits para representação: %i' % nbits)
 	print('Comprimento total das strings: %i' % a.size)
 	print('Quantidade de erros gerados: %i ' % where(a != b)[0].size)
+	print('Variância de A: %.2f' % var_a)
 	print('Variância do ruído: %.2f' % var_n)
 	print('SRN: %.2f' % snr)
 	print('Tamanho to bloco: %i' % k)
