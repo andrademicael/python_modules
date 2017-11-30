@@ -18,21 +18,22 @@ def binary(a,b):
 		retorna a string b com um erro corigido e a posição do 
 		erro na string	
 	'''
+	from numpy import zeros
+
 	if bitpar(a) == bitpar(b):
-		return b
-		print('Os vetores apresentam paridades iguais')
+		return [b, zeros((1,0),dtype=int)[0]]
 	else:		
 		l = a.size
-		k1 = 0
+		k1 = zeros((1,1), dtype = int)[0]
 		while l>1:
 			if l % 2 == 0:
-				if bitpar(a[k1:k1+int(l/2)]) == bitpar(b[k1:k1+int(l/2)]):
+				if bitpar(a[k1[0]:k1[0]+int(l/2)]) == bitpar(b[k1[0]:k1[0]+int(l/2)]):
 					l = int(l/2)
 					k1 = k1+l
 				else:
 					l = int(l/2)
 			else:
-				if bitpar(a[k1:k1+(int(l/2)+1)]) == bitpar(b[k1:k1+(int(l/2)+1)]):
+				if bitpar(a[k1[0]:k1[0]+(int(l/2)+1)]) == bitpar(b[k1[0]:k1[0]+(int(l/2)+1)]):
 					l = int(l/2)+1
 					k1 = k1+l
 				else:
@@ -80,11 +81,11 @@ def dichotomic(a,b,k):
 		if i < n-1:
 			if bitpar(a[i*k:(i+1)*k]) != bitpar(b[i*k:(i+1)*k]):
 				b[i*k:(i+1)*k], p = binary(a[i*k:(i+1)*k], b[i*k:(i+1)*k])
-				pos = concatenate((pos,[i*k + p]))
+				pos = concatenate((pos,i*k + p))
 		else:
 			if bitpar(a[i*k:]) != bitpar(b[i*k:]):
 				b[i*k:], p = binary(a[i*k:], b[i*k:])
-				pos = concatenate((pos,[i*k + p]))
+				pos = concatenate((pos,i*k + p))
 	return [b, pos]
 
 def partial_dic(a,b,e_pos,k):
@@ -93,7 +94,8 @@ def partial_dic(a,b,e_pos,k):
 		A função está instável e, conforme conversa com o professor Bruno, não será utilizada recursividade.
 	'''
 	from numpy import concatenate, arange, array, zeros
-
+	# import ipdb
+	# ipdb.set_trace()
 	l = a.size # string size
 	if l % k == 0: # n -> numer of blocks
 		n = l//k
@@ -102,39 +104,42 @@ def partial_dic(a,b,e_pos,k):
 
 	pos = array([], dtype = int)
 
-	teste = zeros((1, l), dtype = int)
+	teste = zeros((1, l), dtype = int)[0]
 	teste[e_pos] = 1
 
 	for j in range(n):
 		if j < n-1:
 			if bitpar(teste[j*k:(j+1)*k]) == 1:
 				b[j*k:(j+1)*k], p = binary(a[j*k:(j+1)*k], b[j*k:(j+1)*k])
-				pos = concatenate((pos,[j*k + p]))
+				pos = concatenate((pos,j*k + p))
 		else:
 			if bitpar(teste[j*k:]) == 1:
 				b[j*k:], p = binary(a[j*k:], b[j*k:])
-				pos = concatenate((pos,[j*k + p]))
+				pos = concatenate((pos,j*k + p))
 	return [b, pos]
 
 def recurs(a,b,pos,sig,k,step):
 	'''
 		realiza a correção recursiva na reconciliação, do segundo passo em diante.
-		'siga' contém as posições originais de cada bit após as permutações
-		'recurs' sempre restaurará as strings para suas condições iniciais. Logo,
-		'pos' deve informar a posição original do bit corrigido.
-			
+		a, b - strings a serem reconciliadas
+		pos - posição do erro (na string original, antes das permutações)
+		sig - padrão de permutação
+		k - tamanho do bloco de busca
+		step - passo do protocolo, até então
+
 		A função está instável e, conforme conversa com o professor Bruno, não será utilizada recursividade.
+		Edit: tentativa de fazer funcionar: 29/11/17, 22:55
  	'''
 	from numpy import arange
-	import ipdb
-	ipdb.set_trace()
+	# import ipdb
+	# ipdb.set_trace()
 
 	pos.sort()
 	isig = inv_perm(sig) # isig faz a permutação inversa ao padrão em 'sig'
 	for i in range(step-1,0,-1):
 		a = a[isig]
 		b = b[isig]
-		k //= 2
+
 	#nesse ponto, as strings foram permutadas inversamente de modo que estão na posição original. i = 1.
 
 	l = a.size # string size
@@ -146,15 +151,14 @@ def recurs(a,b,pos,sig,k,step):
 	
 	b, pos = partial_dic(a,b,pos,k) # essa operação é semelhate à 'dichotomic' na linha 78, 
 
-	k *= 2
 	for j in range(i,step):
 		a = a[sig]
 		b = b[sig]
 		siga = siga[sig]
 		b, pos = dichotomic(a,b,k)
-		if pos.any():
-			b = recurs(a,b,siga[pos],sig,k,j)
-		k *= 2
+		# if pos.any():
+		# 	b = recurs(a,b,siga[pos],sig,k,j)
+		# k *= 2
 	return b
 
 def cor_var(n, ro):
@@ -193,7 +197,7 @@ def cor_var(n, ro):
 
 def strings(ro, nbits, nr):
 	'''
-		Duas variaveis aleatŕoia são geradas: Gaussianas correlacionadas. As funções cumulativas de 
+		Duas variaveis aleatŕoias são geradas: Gaussianas correlacionadas. As funções cumulativas de 
 		probabilidade de suas realizações assumem uma distribuição uniforme (maximizando entropia).
 		A partir disto, são geradas expansões em base 2, dado um numero fixo de bits para representação
 		dos valores das CDF's
@@ -274,10 +278,12 @@ def b2_exp(n,nb):
 			flag = 1
 	return expanse
 
-def cascade(a, b, sig, k):
+def cascade(a, b, sig, k, *args, **kargs):
 	from numpy import where, arange
-
-	print('\nInício da CASCADE')
+	if 'recur' in kargs:
+		print('\nInício da CASCADE utilizando recursividade')
+	else:
+		print('\nInício da CASCADE sem utilização de recursividade')
 
 	######################################################################################################
 	#									CASCADE 1st Step 			           		                     #
@@ -300,7 +306,7 @@ def cascade(a, b, sig, k):
 	######################################################################################################
 	#									CASCADE 2nd Step 			           		                     #
 	#                                   													             #
-	# k *= 2 # double block size
+
 	while step<10 and where(a != b)[0].size != 0: # o tamanho do bloco para realizar dichotomic() deve ser menor que o tamanho da string
 		a = a[sig] # permutation
 		b = b[sig] # permutation
@@ -309,13 +315,13 @@ def cascade(a, b, sig, k):
 		step += 1 # step compleated
 		print('')
 		print('Após o passo %i, restam %i erros a serem corrigidos.' % (step, where(a != b)[0].size))
-		'''
+		
+		if 'recur' in kargs:
 			if pos.size != 0: # if any error was corrected, must be done a recursive search
-				print('Strings antes da recursividade: \nA: \n%s \nB:\n%s' % (a.reshape((n_r, nbits)), b.reshape((n_r, nbits))))
 				b = recurs(a, b, siga[pos], sig, k, step)
-				print('Strings depois da recursividade: \nA: \n%s \nB:\n%s' % (a.reshape((n_r, nbits)), b.reshape((n_r, nbits))))
-			k *= 2 # double block size
-		'''
+				print('')
+				print('Após a recursividade executada no passo %i, restam %i erros a serem corrigidos.' % (step, where(a != b)[0].size))		
+			
 	return [a, b]
 
 if __name__ == '__bitpar__':
