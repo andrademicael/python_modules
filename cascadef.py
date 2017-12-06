@@ -195,22 +195,24 @@ def cor_var(n, ro):
 
 	return [x, y, var_x, var_y, var_n]
 
-def strings(ro, nbits, nr):
+def strings(snr, nbits, nr, *args, **kargs):
 	'''
 		Duas variaveis aleatŕoias são geradas: Gaussianas correlacionadas. As funções cumulativas de 
 		probabilidade de suas realizações assumem uma distribuição uniforme (maximizando entropia).
 		A partir disto, são geradas expansões em base 2, dado um numero fixo de bits para representação
 		dos valores das CDF's
+
+		snr - relação sinal ruído para geração das variáveis correlacionadas. A SNR indica uma correlação.
+		nbits - numero de bits da 
 	'''
 
-	from numpy import log10, zeros, where
+	from numpy import zeros, where, sqrt
 	from scipy.stats import norm
-
+	ro = sqrt(snr/(snr+1))
 	A, B, var_a, var_b, var_n = cor_var(nr, ro) # gera as duas VA's Gaussianas correlacionadas
 	
 	k = int(0.73/var_n) # First iteration block size
-	snr = 10*log10(var_a/var_n)
-
+	
 	cdfa = norm.cdf(A) # valor da CDF para cada valor de A
 	cdfb = norm.cdf(B) # valor da CDF para cada valor de B
 
@@ -222,19 +224,20 @@ def strings(ro, nbits, nr):
 
 	a = a.reshape((1,a.size))[0]
 	b = b.reshape((1,b.size))[0]
-
-	print('Parâmetros da simulação: ')
-	print('\nCoeficiente de correlação das VA\'s: %.2f' % ro)
-	print('Realizações: %i ' % nr)
-	print('Número de bits para representação: %i' % nbits)
-	print('Comprimento total das strings: %i' % a.size)
-	print('Quantidade de erros gerados: %i ' % where(a != b)[0].size)
-	print('Variância de A: %.2f' % var_a)
-	print('Variância do ruído: %.2f' % var_n)
-	print('SRN: %.2f' % snr)
-	print('Tamanho to bloco: %i' % k)
+	err = where(a != b)[0].size
+	if 'display' in kargs:
+		print('Parâmetros da simulação: ')
+		print('\nCoeficiente de correlação das VA\'s: %.2f' % ro)
+		print('Realizações: %i ' % nr)
+		print('Número de bits para representação: %i' % nbits)
+		print('Comprimento total das strings: %i' % a.size)
+		print('Quantidade de erros gerados: %i ' % err)
+		print('Variância de A: %.2f' % var_a)
+		print('Variância do ruído: %.2f' % var_n)
+		#print('SRN: %.2f' % snr)
+		print('Tamanho to bloco: %i' % k)
 	
-	return [a, b, k, snr]
+	return [a, b, err, k]
 
 def plt_pdf(x, *args, **kargs):
 	from numpy import linspace
