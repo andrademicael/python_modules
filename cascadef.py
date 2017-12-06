@@ -165,13 +165,12 @@ def cor_var(n, ro):
 	''' 
 		função que retorna duas variáveis aleatórias gaussianas correlacionadas.
 		Input:
-		n - comprimento dos vetores
-		m - média
-		ro - correlação
+		n - Número de realizações
+		m - Média
+		ro - Correlação entre as variáveis
 
 		Output:
 		x, y - variáveis aleatórias gaussianas correlacionadas
-		sig - variância do ruído
 	'''
 	from numpy.random import randn
 	from numpy import array, dot, var
@@ -179,23 +178,16 @@ def cor_var(n, ro):
 
 	xy = randn(n,2)
 
-	#!!! corigir !!!
 	R = array([[1, ro],[ro, 1]]) #matriz de covariancia 
-
 	L = cholesky(R)
 	
 	xy_cor = dot(xy,L)
 	x = (xy_cor[:,0]).transpose()
 	y = (xy_cor[:,1]).transpose()
-	n = x-y
 
-	var_x = var(x)
-	var_y = var(y)
-	var_n = var(n)
+	return [x, y]
 
-	return [x, y, var_x, var_y, var_n]
-
-def strings(snr, nbits, nr, *args, **kargs):
+def strings(snr, ordem, nr, *args, **kargs):
 	'''
 		Duas variaveis aleatŕoias são geradas: Gaussianas correlacionadas. As funções cumulativas de 
 		probabilidade de suas realizações assumem uma distribuição uniforme (maximizando entropia).
@@ -204,40 +196,39 @@ def strings(snr, nbits, nr, *args, **kargs):
 
 		snr - relação sinal ruído para geração das variáveis correlacionadas. A SNR indica uma correlação.
 		nbits - numero de bits da 
+		nr = numero de realizações das variáveis aleatórias
 	'''
-
 	from numpy import zeros, where, sqrt
 	from scipy.stats import norm
+
 	ro = sqrt(snr/(snr+1))
-	A, B, var_a, var_b, var_n = cor_var(nr, ro) # gera as duas VA's Gaussianas correlacionadas
-	
-	k = int(0.73/var_n) # First iteration block size
+	A, B = cor_var(nr, ro) # gera as duas VA's Gaussianas correlacionadas
 	
 	cdfa = norm.cdf(A) # valor da CDF para cada valor de A
 	cdfb = norm.cdf(B) # valor da CDF para cada valor de B
 
-	a = zeros((nr, nbits), dtype = int)
-	b = zeros((nr, nbits), dtype = int)
-	for i in range(nr):
-		a[i,:] = b2_exp(cdfa[i],nbits)
-		b[i,:] = b2_exp(cdfb[i],nbits)
+	a = zeros((nr, ordem), dtype = int)
+	b = zeros((nr, ordem), dtype = int)
 
-	a = a.reshape((1,a.size))[0]
-	b = b.reshape((1,b.size))[0]
-	err = where(a != b)[0].size
-	if 'display' in kargs:
-		print('Parâmetros da simulação: ')
-		print('\nCoeficiente de correlação das VA\'s: %.2f' % ro)
-		print('Realizações: %i ' % nr)
-		print('Número de bits para representação: %i' % nbits)
-		print('Comprimento total das strings: %i' % a.size)
-		print('Quantidade de erros gerados: %i ' % err)
-		print('Variância de A: %.2f' % var_a)
-		print('Variância do ruído: %.2f' % var_n)
-		#print('SRN: %.2f' % snr)
-		print('Tamanho to bloco: %i' % k)
+	for i in range(nr):
+		a[i,:] = b2_exp(cdfa[i],ordem)
+		b[i,:] = b2_exp(cdfb[i],ordem)
+	a = a.transpose()
+	b = b.transpose()
+	err = zeros((1,ordem), dtype = int)[0]
 	
-	return [a, b, err, k]
+	for i in range(ordem):
+		err[i] = where(a[i,:] != b[i,:])[0].size
+
+	if 'display' in kargs:
+		print('\nParâmetros da simulação: ')
+		print('\nRelação sinal ruído: %.2f' % snr)
+		print('Coeficiente de correlação das VA\'s: %.2f' % ro)
+		print('Realizações: %i ' % nr)
+		print('Ordem da representação: %i' % ordem)
+		print('Quantidade de erros gerados em cada canal: %s ' % err)
+
+	return [a, b, err]
 
 def plt_pdf(x, *args, **kargs):
 	from numpy import linspace
